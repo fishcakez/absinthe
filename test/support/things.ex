@@ -60,6 +60,10 @@ defmodule Things do
       end
     end
 
+    field :non_null_error_thing, non_null(:thing) do
+      resolve fn _, _ -> {:error, "nope"} end
+    end
+
     field :thing,
       type: :thing,
       args: [

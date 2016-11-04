@@ -24,6 +24,19 @@ defmodule AbsintheTest do
     assert_result {:ok, %{data: %{"thing" => %{"fOO_Bar_baz" => "Foo"}}}}, run(query, Things)
   end
 
+  it "does not blow up when a non null field returns an error" do
+    query = """
+    {
+      nonNullErrorThing {
+        name
+      }
+    }
+    """
+    assert_raise(Absinthe.ExecutionError, fn ->
+      assert_result {:ok, %{data: %{}, errors: [%{message: "In field \"nonNullErrorThing\": nope"}]}}, run(query, Things)
+    end)
+  end
+
   it "can do a simple query returning a list" do
     query = """
     query AllTheThings {

@@ -145,12 +145,30 @@ defmodule Absinthe.Phase.Document.Execution.Resolution do
   end
   defp build_result({:error, msg}, acc, bp_field, info, _) do
     message = ~s(In field "#{bp_field.name}": #{msg})
-    full_type = Type.expand(bp_field.schema_node.type, info.schema)
-
     result =
-      nil
-      |> to_result(bp_field, full_type)
-      |> put_error(error(bp_field, message))
+      bp_field.schema_node.type
+      |> Type.expand(info.schema)
+      |> case do
+        %Type.NonNull{} = full_type ->
+          raise Absinthe.ExecutionError, """
+          Returned error from non null field!
+
+          Error: #{msg}
+
+          Blueprint: #{inspect bp_field}
+
+          Schema Type: #{inspect full_type}
+
+          Source: #{inspect info.source}
+
+          Explanation: Fields marked non null must always return a value, and are
+          permitted to return an error.
+          """
+        full_type ->
+          nil
+          |> to_result(bp_field, full_type)
+          |> put_error(error(bp_field, message))
+      end
 
     {result, acc}
   end
@@ -293,11 +311,13 @@ defmodule Absinthe.Phase.Document.Execution.Resolution do
     false
   end
 
-  defp nil_value_error(_blueprint, _schema_type) do
+  defp nil_value_error(blueprint, schema_type) do
     """
     Tried to return nil value of field marked non null!
 
-    TODO: More detailed error message
+    #{inspect blueprint}
+
+    #{inspect schema_type}
     """
   end
 end
